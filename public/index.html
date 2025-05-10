@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bag of Tasks</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Bag of Tasks</h1>
+            <p class="quote">"One tomato at a time �"</p>
+        </header>
+
+        <div class="controls">
+            <div class="mood-selector">
+                <span>I'm feeling:</span>
+                <select id="mood-select">
+                    <option value="all">Any mood</option>
+                    <option value="low-energy">Low Energy</option>
+                    <option value="focused">Focused</option>
+                    <option value="creative">Creative</option>
+                    <option value="quick-win">Need a Quick Win</option>
+                </select>
+            </div>
+
+            <div class="filter-tags">
+                <button class="tag-filter active" data-tag="all">All</button>
+                <button class="tag-filter" data-tag="low-energy">Low Energy</button>
+                <button class="tag-filter" data-tag="quick-win">Quick Win</button>
+                <button class="tag-filter" data-tag="creative">Creative</button>
+                <button class="tag-filter" data-tag="focused">Focused</button>
+            </div>
+
+            <div class="action-buttons">
+                <button id="random-task" class="btn primary">Pick Random Task</button>
+                <button id="add-task" class="btn secondary">+ Add Task</button>
+            </div>
+        </div>
+
+        <div class="timer-container">
+            <div class="timer-display">
+                <div id="timer">25:00</div>
+                <div id="timer-message">Ready to focus?</div>
+            </div>
+            <div class="timer-controls">
+                <button id="start-timer" class="btn primary">Start</button>
+                <button id="pause-timer" class="btn secondary">Pause</button>
+                <button id="reset-timer" class="btn secondary">Reset</button>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+        </div>
+
+        <div class="task-pool" id="task-pool">
+            <!-- Tasks will be inserted here by JavaScript -->
+            <div class="empty-state">
+                <p>Your bag is empty!</p>
+                <p>Add some tasks to get started.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Task Modal -->
+    <div class="modal" id="add-task-modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Add New Task</h2>
+            <form id="task-form">
+                <div class="form-group">
+                    <label for="task-title">Task Title</label>
+                    <input type="text" id="task-title" required placeholder="What needs to be done?">
+                </div>
+                <div class="form-group">
+                    <label for="task-duration">Duration (minutes)</label>
+                    <input type="number" id="task-duration" min="5" max="120" value="25">
+                </div>
+                <div class="form-group">
+                    <label>Tags</label>
+                    <div class="tag-options">
+                        <label class="tag-option">
+                            <input type="checkbox" name="tags" value="low-energy">
+                            <span>Low Energy</span>
+                        </label>
+                        <label class="tag-option">
+                            <input type="checkbox" name="tags" value="quick-win">
+                            <span>Quick Win</span>
+                        </label>
+                        <label class="tag-option">
+                            <input type="checkbox" name="tags" value="creative">
+                            <span>Creative</span>
+                        </label>
+                        <label class="tag-option">
+                            <input type="checkbox" name="tags" value="focused">
+                            <span>Focused</span>
+                        </label>
+                    </div>
+                </div>
+                <button type="submit" class="btn primary">Add Task</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal" id="success-modal">
+        <div class="modal-content success">
+            <h2>You did it! �</h2>
+            <p>Great job completing your task!</p>
+            <button class="btn primary" id="close-success">Keep Going</button>
+        </div>
+    </div>
+
+    <canvas id="confetti-canvas"></canvas>
+    <audio id="success-sound" src="success.wav"></audio>
+
+    <script src="script.js"></script>
+</body>
+</html>
