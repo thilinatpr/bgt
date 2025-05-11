@@ -230,7 +230,7 @@ async function handleAddTask(e) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ title, duration, tags: tags.length ? tags : ['general'] })
-        }, REQUEST_TIMEOUT);
+        }, REQUEST_TIMEOUT));
         
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
