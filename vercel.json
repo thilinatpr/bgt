@@ -1,17 +1,19 @@
 {
   "version": 2,
   "builds": [
-    { "src": "api/*.js", "use": "@vercel/node" },
-    { "src": "public/**", "use": "@vercel/static" }
+    {
+      "src": "api/tasks.js",
+      "use": "@vercel/node"
+    }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/(.*)", "dest": "/public/$1" }
-  ],
-  "env": {
-    "KV_REST_API_URL": "https://polished-dog-19227.upstash.io",
-    "KV_REST_API_TOKEN": "AUsbAAIjcDFhODUwNmU0YTNjMTM0ZjBjOTAyMTZjMDBjMDc0N2RjNHAxMA",
-    "KV_REST_API_READ_ONLY_TOKEN": "AksbAAIgcDElr7lOgI4IcJHNWWTbUaMhSjMDVYBvTY0Ih2Ch_fmQzA",
-    "REDIS_URL": "rediss://default:AUsbAAIjcDFhODUwNmU0YTNjMTM0ZjBjOTAyMTZjMDBjMDc0N2RjNHAxMA@polished-dog-19227.upstash.io:6379"
-  }
+    {
+      "src": "/api/tasks(.*)",
+      "dest": "/api/tasks"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/$1"
+    }
+  ]
 }
