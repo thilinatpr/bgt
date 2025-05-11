@@ -302,6 +302,8 @@ function startTaskTimer(taskId) {
 }
 
 // Update timer
+// ... [existing code remains the same until line 371]
+
 function updateTimer() {
     currentTime--;
     updateTimerDisplay();
@@ -310,3 +312,177 @@ function updateTimer() {
     
     if (currentTime <= 0) {
         clearInterval(timer);
+        isTimerRunning = false;
+        
+        // Complete the task
+        completeTask(currentTaskId);
+    }
+}
+
+// Complete task function
+async function completeTask(taskId) {
+    try {
+        const response = await fetch('/api/tasks/complete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ taskId })
+        });
+        
+        if (!response.ok) throw new Error('Failed to complete task');
+        
+        const result = await response.json();
+        completedTasks = result.completedTasks;
+        
+        // Remove completed task from local array
+        tasks = tasks.filter(task => task.id !== taskId);
+        
+        // Show success message
+        showSuccessMessage();
+        
+        // Update UI
+        renderTaskCloud();
+        miniTimer.style.display = 'none';
+        
+    } catch (error) {
+        console.error('Error completing task:', error);
+        alert('Failed to complete task. Please try again.');
+    }
+}
+
+// Pause timer
+function pauseTimer() {
+    if (isTimerRunning) {
+        clearInterval(timer);
+        isTimerRunning = false;
+        pauseTimerBtn.textContent = '▶️';
+    } else {
+        timer = setInterval(updateTimer, 1000);
+        isTimerRunning = true;
+        pauseTimerBtn.textContent = '⏸️';
+    }
+}
+
+// Reset timer
+function resetTimer() {
+    clearInterval(timer);
+    miniTimer.style.display = 'none';
+    currentTaskId = null;
+}
+
+// Update timer display
+function updateTimerDisplay() {
+    const minutes = Math.floor(currentTime / 60);
+    const seconds = currentTime % 60;
+    timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
+// Update progress bar
+function updateProgressBar() {
+    if (currentTime <= 0) return;
+    const progressPercent = 100 - (currentTime / timerDuration * 100);
+    progressFill.style.width = `${progressPercent}%`;
+}
+
+// Show success message
+function showSuccessMessage() {
+    successModal.style.display = 'flex';
+    successSound.play();
+    
+    // Animate confetti
+    const confettiCtx = confettiCanvas.getContext('2d');
+    confettiCanvas.width = window.innerWidth;
+    confettiCanvas.height = window.innerHeight;
+    confettiCanvas.style.display = 'block';
+    
+    const confetti = [];
+    const confettiCount = 200;
+    const gravity = 0.5;
+    const terminalVelocity = 5;
+    const drag = 0.075;
+    const colors = [
+        { front: '#4285F4', back: '#3372C3' }, // Blue
+        { front: '#EA4335', back: '#C52E20' }, // Red
+        { front: '#FBBC05', back: '#DA921A' }, // Yellow
+        { front: '#34A853', back: '#298043' }  // Green
+    ];
+    
+    for (let i = 0; i < confettiCount; i++) {
+        confetti.push({
+            color: colors[Math.floor(Math.random() * colors.length)],
+            dimensions: {
+                x: Math.random() * 10 + 5,
+                y: Math.random() * 10 + 5
+            },
+            position: {
+                x: Math.random() * confettiCanvas.width,
+                y: -Math.random() * confettiCanvas.height
+            },
+            rotation: Math.random() * 2 * Math.PI,
+            scale: {
+                x: 1,
+                y: 1
+            },
+            velocity: {
+                x: Math.random() * 25 - 12.5,
+                y: Math.random() * 10 + 5
+            }
+        });
+    }
+    
+    function renderConfetti() {
+        confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        
+        confetti.forEach((confetto, index) => {
+            let width = confetto.dimensions.x * confetto.scale.x;
+            let height = confetto.dimensions.y * confetto.scale.y;
+            
+            // Apply forces
+            confetto.velocity.x -= confetto.velocity.x * drag;
+            confetto.velocity.y = Math.min(confetto.velocity.y + gravity, terminalVelocity);
+            confetto.velocity.x += Math.random() > 0.5 ? Math.random() : -Math.random();
+            
+            // Update position
+            confetto.position.x += confetto.velocity.x;
+            confetto.position.y += confetto.velocity.y;
+            
+            // Update rotation
+            confetto.rotation += 0.1;
+            
+            // Render confetto
+            confettiCtx.save();
+            confettiCtx.translate(confetto.position.x, confetto.position.y);
+            confettiCtx.rotate(confetto.rotation);
+            
+            const colorSide = Math.random() > 0.5 ? confetto.color.front : confetto.color.back;
+            
+            confettiCtx.fillStyle = colorSide;
+            confettiCtx.fillRect(-width / 2, -height / 2, width, height);
+            confettiCtx.restore();
+            
+            // Remove confetti when past reset point
+            if (confetto.position.y >= confettiCanvas.height) {
+                confetti.splice(index, 1);
+            }
+        });
+        
+        // Keep animating if there are confetti left
+        if (confetti.length) {
+            requestAnimationFrame(renderConfetti);
+        } else {
+            confettiCanvas.style.display = 'none';
+        }
+    }
+    
+    requestAnimationFrame(renderConfetti);
+}
+
+// Set a random quote
+function setRandomQuote() {
+    const randomIndex = Math.floor(Math.random() * quotes.length);
+    document.querySelector('.quote').textContent = quotes[randomIndex];
+}
+
+// Initialize the app
+init();
