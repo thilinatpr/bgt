@@ -1,6 +1,7 @@
 {
   "name": "bag-of-tasks",
   "version": "1.0.0",
+  "type":"module",
   "description": "A productivity app with task picking based on mood",
   "scripts": {
     "dev": "vercel dev",
