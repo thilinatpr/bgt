@@ -1,15 +1,12 @@
 {
   "name": "bag-of-tasks",
   "version": "1.0.0",
-  "type":"module",
   "description": "A productivity app with task picking based on mood",
   "scripts": {
-    "dev": "vercel dev",
-    "start": "node api/tasks.js" 
+    "dev": "vercel dev"
   },
   "dependencies": {
-    "@vercel/kv": "^0.2.3",
-    "express": "^4.18.2"
+    "@vercel/kv": "^0.2.3"
   },
   "devDependencies": {
     "vercel": "^31.0.0"
