@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bag of Tasks</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/public/style.css">
 </head>
 <body>
     <div class="container">
         <header>
             <h1>Bag of Tasks</h1>
-            <p class="quote">One tomato at a time 🍅</p>
+            <p class="quote" id="motivational-quote">One tomato at a time 🍅</p>
         </header>
         
         <div id="mini-timer" class="mini-timer">
@@ -68,11 +68,11 @@
             <form id="task-form">
                 <div class="form-group">
                     <label for="task-title">Task Title</label>
-                    <input type="text" id="task-title" placeholder="Enter task title">
+                    <input type="text" id="task-title" placeholder="Enter task title" required>
                 </div>
                 <div class="form-group">
                     <label for="task-duration">Duration (minutes)</label>
-                    <input type="number" id="task-duration" value="25" min="1" max="120">
+                    <input type="number" id="task-duration" value="25" min="1" max="120" required>
                 </div>
                 <div class="form-group">
                     <label>Tags</label>
@@ -94,7 +94,7 @@
                             Focused
                         </label>
                         <label class="tag-option">
-                            <input type="checkbox" name="tags" value="general">
+                            <input type="checkbox" name="tags" value="general" checked>
                             General
                         </label>
                     </div>
@@ -115,6 +115,6 @@
     <canvas id="confetti-canvas"></canvas>
     <audio id="success-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3" preload="auto"></audio>
     
-    <script src="script.js"></script>
+    <script src="/public/script.js"></script>
 </body>
 </html>

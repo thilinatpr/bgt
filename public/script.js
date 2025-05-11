@@ -18,20 +18,17 @@ const closeSuccessBtn = document.getElementById('close-success');
 const successSound = document.getElementById('success-sound');
 const confettiCanvas = document.getElementById('confetti-canvas');
 const loadingIndicator = document.getElementById('loading-indicator');
+const quoteElement = document.getElementById('motivational-quote');
 
 // Constants
-// Change this URL for production/development
-const API_BASE_URL = 'https://your-backend-vercel-url.vercel.app/api/tasks';
-// For production, use:
-// const API_BASE_URL = 'https://your-backend-vercel-url.vercel.app/api/tasks';
-
-const LOADING_DELAY = 300; // ms to show loading indicator
-const REQUEST_TIMEOUT = 5000; // 5 seconds timeout for API calls
+const API_BASE_URL = 'https://bag-of-tasks-api.vercel.app/api/tasks'; // Update with your actual API URL
+const LOADING_DELAY = 300;
+const REQUEST_TIMEOUT = 5000;
 
 // State
 let tasks = [];
 let timer;
-let timerDuration = 25 * 60; // 25 minutes in seconds
+let timerDuration = 25 * 60;
 let currentTime = timerDuration;
 let isTimerRunning = false;
 let currentTaskId = null;
@@ -47,6 +44,12 @@ const quotes = [
 
 // Initialize the app
 async function init() {
+    if (pendingRequests > 0) return;
+    
+    // Set canvas dimensions
+    confettiCanvas.width = window.innerWidth;
+    confettiCanvas.height = window.innerHeight;
+    
     try {
         showLoading(true);
         await Promise.all([
@@ -108,9 +111,16 @@ async function fetchTasks() {
         if (!Array.isArray(data)) throw new Error('Invalid tasks data received');
         
         tasks = data;
+        localStorage.setItem('tasks', JSON.stringify(data));
         return data;
     } catch (error) {
         console.error('Fetch tasks error:', error);
+        // Fallback to local storage
+        const localTasks = localStorage.getItem('tasks');
+        if (localTasks) {
+            tasks = JSON.parse(localTasks);
+            return tasks;
+        }
         throw error;
     } finally {
         pendingRequests--;
@@ -165,6 +175,12 @@ function setupEventListeners() {
     
     pauseTimerBtn.addEventListener('click', pauseTimer);
     resetTimerBtn.addEventListener('click', resetTimer);
+    
+    // Handle window resize for canvas
+    window.addEventListener('resize', () => {
+        confettiCanvas.width = window.innerWidth;
+        confettiCanvas.height = window.innerHeight;
+    });
 }
 
 // Render tasks as a tag cloud
@@ -186,7 +202,7 @@ function renderTaskCloud(filteredTasks = tasks) {
     filteredTasks.forEach(task => {
         const tagItem = document.createElement('div');
         const randomSize = sizes[Math.floor(Math.random() * sizes.length)];
-        const primaryTag = task.tags && task.tags.length > 0 ? task.tags[0] : '';
+        const primaryTag = task.tags && task.tags.length > 0 ? task.tags[0] : 'general';
         
         tagItem.className = `task-tag-item ${primaryTag} ${randomSize}`;
         tagItem.dataset.id = task.id;
@@ -221,8 +237,8 @@ async function handleAddTask(e) {
     const tags = Array.from(document.querySelectorAll('input[name="tags"]:checked'))
         .map(checkbox => checkbox.value);
     
-    if (!title) {
-        showError('Task title is required');
+    if (!title || duration < 1) {
+        showError('Please enter a valid task title and duration (minimum 1 minute)');
         return;
     }
     
@@ -246,6 +262,7 @@ async function handleAddTask(e) {
         
         addTaskModal.style.display = 'none';
         taskForm.reset();
+        document.querySelector('input[name="tags"][value="general"]').checked = true;
     } catch (error) {
         console.error('Add task error:', error);
         showError(`Failed to add task: ${error.message}`);
@@ -256,28 +273,38 @@ async function handleAddTask(e) {
 
 // Pick a random task
 function pickRandomTask() {
-    const activeFilter = document.querySelector('.tag-filter.active').dataset.tag;
-    const moodFilter = moodSelect.value;
+    randomTaskBtn.disabled = true;
+    randomTaskBtn.textContent = 'Picking...';
     
-    let filteredTasks = tasks.filter(task => {
-        const taskTags = task.tags || [];
-        return (activeFilter === 'all' || taskTags.includes(activeFilter)) &&
-               (moodFilter === 'all' || taskTags.includes(moodFilter));
-    });
-    
-    if (filteredTasks.length === 0) {
-        showError("No tasks match your filters");
-        return;
-    }
-    
-    const randomTask = filteredTasks[Math.floor(Math.random() * filteredTasks.length)];
-    const taskElement = document.querySelector(`.task-tag-item[data-id="${randomTask.id}"]`);
-    
-    if (taskElement) {
-        taskElement.style.transform = 'translateY(-15px) scale(1.1)';
-        taskElement.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.15)';
-        taskElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+    setTimeout(() => {
+        const activeFilter = document.querySelector('.tag-filter.active').dataset.tag;
+        const moodFilter = moodSelect.value;
+        
+        let filteredTasks = tasks.filter(task => {
+            const taskTags = task.tags || [];
+            return (activeFilter === 'all' || taskTags.includes(activeFilter)) &&
+                   (moodFilter === 'all' || taskTags.includes(moodFilter));
+        });
+        
+        if (filteredTasks.length === 0) {
+            showError("No tasks match your filters");
+            randomTaskBtn.disabled = false;
+            randomTaskBtn.textContent = 'Pick Random Task';
+            return;
+        }
+        
+        const randomTask = filteredTasks[Math.floor(Math.random() * filteredTasks.length)];
+        const taskElement = document.querySelector(`.task-tag-item[data-id="${randomTask.id}"]`);
+        
+        if (taskElement) {
+            taskElement.style.transform = 'translateY(-15px) scale(1.1)';
+            taskElement.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.15)';
+            taskElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        randomTaskBtn.disabled = false;
+        randomTaskBtn.textContent = 'Pick Random Task';
+    }, 300);
 }
 
 // Filter tasks by mood
@@ -341,8 +368,12 @@ function pauseTimer() {
 
 function resetTimer() {
     clearInterval(timer);
+    isTimerRunning = false;
     miniTimer.style.display = 'none';
     currentTaskId = null;
+    currentTime = timerDuration;
+    updateTimerDisplay();
+    updateProgressBar();
 }
 
 function updateTimerDisplay() {
@@ -373,10 +404,11 @@ async function completeTask(taskId) {
         }
         
         const result = await response.json();
-               completedTasks = result.completed_tasks || completedTasks + 1;
+        completedTasks = result.completed_tasks || completedTasks + 1;
         
         // Remove completed task from local state
         tasks = tasks.filter(task => task.id !== taskId);
+        localStorage.setItem('tasks', JSON.stringify(tasks));
         
         // Show success effects
         showSuccessEffects();
@@ -408,8 +440,6 @@ function showSuccessEffects() {
         const confettiCtx = confettiCanvas.getContext('2d');
         confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
         
-        // Using a simple confetti implementation
-        // For a more robust solution, consider using a library like canvas-confetti
         const particles = [];
         for (let i = 0; i < confettiSettings.particleCount; i++) {
             particles.push({
@@ -457,7 +487,6 @@ function showSuccessEffects() {
 
 // Set random motivational quote
 function setRandomQuote() {
-    const quoteElement = document.getElementById('motivational-quote');
     if (quoteElement && quotes.length > 0) {
         const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
         quoteElement.textContent = randomQuote;
