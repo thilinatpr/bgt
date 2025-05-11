@@ -17,16 +17,17 @@ const successModal = document.getElementById('success-modal');
 const closeSuccessBtn = document.getElementById('close-success');
 const successSound = document.getElementById('success-sound');
 const confettiCanvas = document.getElementById('confetti-canvas');
+const loadingIndicator = document.getElementById('loading-indicator');
 
 // State
-let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+let tasks = [];
 let timer;
 let timerDuration = 25 * 60; // 25 minutes in seconds
 let currentTime = timerDuration;
 let isTimerRunning = false;
 let isBreakTime = false;
 let currentTaskId = null;
-let completedTasks = JSON.parse(localStorage.getItem('completedTasks')) || 0;
+let completedTasks = 0;
 const quotes = [
     "One tomato at a time 🍅",
     "Small steps lead to big results",
@@ -36,11 +37,60 @@ const quotes = [
 ];
 
 // Initialize the app
-function init() {
-    renderTaskCloud();
-    updateProgressBar();
-    setRandomQuote();
-    setupEventListeners();
+async function init() {
+    showLoading(true);
+    try {
+        await Promise.all([fetchTasks(), fetchStats()]);
+        renderTaskCloud();
+        setRandomQuote();
+        setupEventListeners();
+    } catch (error) {
+        console.error('Error initializing app:', error);
+        showError('Failed to load tasks. Please try refreshing the page.');
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Show or hide loading indicator
+function showLoading(show) {
+    loadingIndicator.style.display = show ? 'flex' : 'none';
+    taskPool.style.visibility = show ? 'hidden' : 'visible';
+}
+
+// Show error message
+function showError(message) {
+    taskPool.innerHTML = `
+        <div class="empty-state">
+            <p>Error: ${message}</p>
+        </div>
+    `;
+}
+
+// Fetch tasks from API
+async function fetchTasks() {
+    try {
+        const response = await fetch('/api/tasks');
+        if (!response.ok) throw new Error('Failed to fetch tasks');
+        tasks = await response.json();
+    } catch (error) {
+        console.error('Error fetching tasks:', error);
+        throw error;
+    }
+}
+
+// Fetch stats from API
+async function fetchStats() {
+    try {
+        const response = await fetch('/api/tasks/stats');
+        if (!response.ok) throw new Error('Failed to fetch stats');
+        const stats = await response.json();
+        completedTasks = stats.completedTasks;
+        updateProgressBar();
+    } catch (error) {
+        console.error('Error fetching stats:', error);
+        throw error;
+    }
 }
 
 // Set up event listeners
@@ -121,15 +171,8 @@ function randomizePositions() {
     });
 }
 
-// Format tag name for display
-function formatTagName(tag) {
-    return tag.split('-').map(word => 
-        word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ');
-}
-
 // Handle adding a new task
-function handleAddTask(e) {
+async function handleAddTask(e) {
     e.preventDefault();
     
     const title = document.getElementById('task-title').value;
@@ -138,22 +181,36 @@ function handleAddTask(e) {
         .map(checkbox => checkbox.value);
     
     const newTask = {
-        id: Date.now().toString(),
         title,
         duration,
         tags: tags.length > 0 ? tags : ['general']
     };
     
-    tasks.push(newTask);
-    saveTasks();
-    renderTaskCloud();
-    addTaskModal.style.display = 'none';
-    taskForm.reset();
-}
-
-// Save tasks to localStorage
-function saveTasks() {
-    localStorage.setItem('tasks', JSON.stringify(tasks));
+    try {
+        showLoading(true);
+        
+        const response = await fetch('/api/tasks', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(newTask)
+        });
+        
+        if (!response.ok) throw new Error('Failed to save task');
+        
+        const savedTask = await response.json();
+        tasks.push(savedTask);
+        renderTaskCloud();
+        
+        addTaskModal.style.display = 'none';
+        taskForm.reset();
+    } catch (error) {
+        console.error('Error saving task:', error);
+        alert('Failed to save task. Please try again.');
+    } finally {
+        showLoading(false);
+    }
 }
 
 // Pick a random task and highlight it
@@ -239,164 +296,17 @@ function startTaskTimer(taskId) {
     isTimerRunning = true;
     timer = setInterval(updateTimer, 1000);
     pauseTimerBtn.textContent = '⏸️';
+    
+    // Update progress bar initial state
+    updateProgressBar();
 }
 
 // Update timer
 function updateTimer() {
     currentTime--;
     updateTimerDisplay();
-    updateProgressBar();
+    const progressPercent = 100 - (currentTime / timerDuration * 100);
+    document.querySelector('.progress-fill').style.width = `${progressPercent}%`;
     
     if (currentTime <= 0) {
         clearInterval(timer);
-        isTimerRunning = false;
-        
-        if (!isBreakTime) {
-            // Work session completed
-            completeTask();
-            isBreakTime = true;
-            currentTime = 5 * 60; // 5 minute break
-            timerTaskTitle.textContent = 'Time for a break!';
-        } else {
-            // Break completed
-            isBreakTime = false;
-            miniTimer.style.display = 'none';
-            currentTaskId = null;
-        }
-    }
-}
-
-function pauseTimer() {
-    if (isTimerRunning) {
-        clearInterval(timer);
-        isTimerRunning = false;
-        pauseTimerBtn.textContent = '▶️';
-    } else {
-        timer = setInterval(updateTimer, 1000);
-        isTimerRunning = true;
-        pauseTimerBtn.textContent = '⏸️';
-    }
-}
-
-function resetTimer() {
-    clearInterval(timer);
-    isTimerRunning = false;
-    miniTimer.style.display = 'none';
-    currentTaskId = null;
-}
-
-function updateTimerDisplay() {
-    const minutes = Math.floor(currentTime / 60);
-    const seconds = currentTime % 60;
-    timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-}
-
-// Handle task completion
-function completeTask() {
-    completedTasks++;
-    localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
-    
-    // Remove the completed task
-    if (currentTaskId) {
-        tasks = tasks.filter(task => task.id !== currentTaskId);
-        saveTasks();
-        renderTaskCloud();
-    }
-    
-    updateProgressBar();
-    showSuccess();
-}
-
-function updateProgressBar() {
-    const progressPercentage = (completedTasks % 8) * 12.5; // 8 tasks = 100%
-    progressFill.style.width = `${progressPercentage}%`;
-}
-
-function showSuccess() {
-    // Show confetti
-    confettiCanvas.style.display = 'block';
-    const confettiSettings = {
-        particleCount: 150,
-        spread: 70,
-        origin: { y: 0.6 }
-    };
-    createConfetti(confettiSettings);
-    
-    // Play success sound
-    if (successSound) {
-        successSound.play().catch(e => console.log("Audio play failed:", e));
-    }
-    
-    // Show success modal
-    successModal.style.display = 'flex';
-    
-    // Hide confetti after animation
-    setTimeout(() => {
-        confettiCanvas.style.display = 'none';
-    }, 3000);
-}
-
-// Confetti function
-function createConfetti(settings) {
-    confettiCanvas.width = window.innerWidth;
-    confettiCanvas.height = window.innerHeight;
-    const ctx = confettiCanvas.getContext('2d');
-    const particles = [];
-    const { particleCount, spread, origin } = settings;
-    
-    for (let i = 0; i < particleCount; i++) {
-        particles.push({
-            x: origin.x * confettiCanvas.width,
-            y: origin.y * confettiCanvas.height,
-            size: Math.random() * 5 + 3,
-            color: `hsl(${Math.random() * 360}, 100%, 50%)`,
-            speedX: Math.random() * spread - (spread / 2),
-            speedY: Math.random() * spread * -1,
-            rotation: Math.random() * 360,
-            rotationSpeed: Math.random() * 10 - 5
-        });
-    }
-    
-    animate();
-    
-    function animate() {
-        ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
-        
-        for (let i = 0; i < particles.length; i++) {
-            const p = particles[i];
-            
-            ctx.save();
-            ctx.translate(p.x, p.y);
-            ctx.rotate(p.rotation * Math.PI / 180);
-            
-            ctx.fillStyle = p.color;
-            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
-            
-            ctx.restore();
-            
-            p.x += p.speedX;
-            p.y += p.speedY;
-            p.speedY += 0.1; // gravity
-            p.rotation += p.rotationSpeed;
-            
-            // Remove particles that are off screen
-            if (p.y > confettiCanvas.height || p.x < 0 || p.x > confettiCanvas.width) {
-                particles.splice(i, 1);
-                i--;
-            }
-        }
-        
-        if (particles.length > 0) {
-            requestAnimationFrame(animate);
-        }
-    }
-}
-
-// Set a random motivational quote
-function setRandomQuote() {
-    const randomIndex = Math.floor(Math.random() * quotes.length);
-    document.querySelector('.quote').textContent = quotes[randomIndex];
-}
-
-// Initialize the app
-document.addEventListener('DOMContentLoaded', init);
