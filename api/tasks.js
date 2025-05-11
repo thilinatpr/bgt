@@ -3,7 +3,7 @@ import { kv } from '@vercel/kv';
 
 // Verify KV configuration
 const verifyKvConfig = () => {
-  const requiredEnvVars = ['KV_REST_API_URL', 'KV_REST_API_TOKEN'];
+  const requiredEnvVars = ['KV2_REST_API_URL', 'KV2_REST_API_TOKEN'];
   const missing = requiredEnvVars.filter(envVar => !process.env[envVar]);
   
   if (missing.length > 0) {
