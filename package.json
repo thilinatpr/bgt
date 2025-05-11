@@ -4,7 +4,7 @@
   "description": "A productivity app with task picking based on mood",
   "scripts": {
     "dev": "vercel dev",
-    "start": "node api/index.js" 
+    "start": "node api/tasks.js" 
   },
   "dependencies": {
     "@vercel/kv": "^0.2.3",
