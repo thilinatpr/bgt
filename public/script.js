@@ -8,8 +8,8 @@ const randomTaskBtn = document.getElementById('random-task');
 const moodSelect = document.getElementById('mood-select');
 const tagFilters = document.querySelectorAll('.tag-filter');
 const timerDisplay = document.getElementById('timer');
-const timerMessage = document.getElementById('timer-message');
-const startTimerBtn = document.getElementById('start-timer');
+const timerTaskTitle = document.getElementById('timer-task-title');
+const miniTimer = document.getElementById('mini-timer');
 const pauseTimerBtn = document.getElementById('pause-timer');
 const resetTimerBtn = document.getElementById('reset-timer');
 const progressFill = document.querySelector('.progress-fill');
@@ -25,6 +25,7 @@ let timerDuration = 25 * 60; // 25 minutes in seconds
 let currentTime = timerDuration;
 let isTimerRunning = false;
 let isBreakTime = false;
+let currentTaskId = null;
 let completedTasks = JSON.parse(localStorage.getItem('completedTasks')) || 0;
 const quotes = [
     "One tomato at a time 🍅",
@@ -36,11 +37,10 @@ const quotes = [
 
 // Initialize the app
 function init() {
-    renderTasks();
+    renderTaskCloud();
     updateProgressBar();
     setRandomQuote();
     setupEventListeners();
-    updateTimerDisplay();
 }
 
 // Set up event listeners
@@ -66,13 +66,12 @@ function setupEventListeners() {
         });
     });
     
-    startTimerBtn.addEventListener('click', startTimer);
     pauseTimerBtn.addEventListener('click', pauseTimer);
     resetTimerBtn.addEventListener('click', resetTimer);
 }
 
-// Render tasks to the DOM
-function renderTasks(filteredTasks = tasks) {
+// Render tasks as a tag cloud
+function renderTaskCloud(filteredTasks = tasks) {
     taskPool.innerHTML = '';
     
     if (filteredTasks.length === 0) {
@@ -85,30 +84,40 @@ function renderTasks(filteredTasks = tasks) {
         return;
     }
     
+    // Create random sizes for tag cloud effect
+    const sizes = ['size-s', 'size-m', 'size-l', 'size-xl'];
+    
     filteredTasks.forEach(task => {
-        const taskCard = document.createElement('div');
-        taskCard.className = 'task-card';
-        taskCard.dataset.tags = task.tags.join(' ');
+        const tagItem = document.createElement('div');
+        const randomSize = sizes[Math.floor(Math.random() * sizes.length)];
         
-        const tagsHTML = task.tags.map(tag => 
-            `<span class="task-tag ${tag}">${formatTagName(tag)}</span>`
-        ).join('');
+        // Determine primary tag for background color
+        const primaryTag = task.tags.length > 0 ? task.tags[0] : '';
         
-        taskCard.innerHTML = `
-            <h3 class="task-title">${task.title}</h3>
-            <div class="task-duration">${task.duration} minutes</div>
-            <div class="task-tags">${tagsHTML}</div>
-            <div class="task-actions">
-                <button class="btn primary start-task" data-id="${task.id}">Start Timer</button>
-            </div>
+        tagItem.className = `task-tag-item ${primaryTag} ${randomSize}`;
+        tagItem.dataset.id = task.id;
+        tagItem.dataset.tags = task.tags.join(' ');
+        
+        tagItem.innerHTML = `
+            <span class="task-title">${task.title}</span>
+            <span class="task-duration">${task.duration}m</span>
         `;
         
-        taskPool.appendChild(taskCard);
+        tagItem.addEventListener('click', () => startTaskTimer(task.id));
+        
+        taskPool.appendChild(tagItem);
     });
     
-    // Add event listeners to the new task start buttons
-    document.querySelectorAll('.start-task').forEach(btn => {
-        btn.addEventListener('click', () => startTaskTimer(btn.dataset.id));
+    // Randomly position elements for a more cloud-like appearance
+    setTimeout(() => randomizePositions(), 10);
+}
+
+// Randomize tag positions slightly for cloud effect
+function randomizePositions() {
+    const tagItems = document.querySelectorAll('.task-tag-item');
+    tagItems.forEach(item => {
+        const randomY = Math.floor(Math.random() * 20) - 10;
+        item.style.transform = `translateY(${randomY}px)`;
     });
 }
 
@@ -137,7 +146,7 @@ function handleAddTask(e) {
     
     tasks.push(newTask);
     saveTasks();
-    renderTasks();
+    renderTaskCloud();
     addTaskModal.style.display = 'none';
     taskForm.reset();
 }
@@ -173,15 +182,15 @@ function pickRandomTask() {
     const randomTask = filteredTasks[randomIndex];
     
     // Highlight the random task
-    const taskCards = document.querySelectorAll('.task-card');
-    taskCards.forEach(card => {
-        card.style.transform = '';
-        card.style.boxShadow = '';
+    const taskItems = document.querySelectorAll('.task-tag-item');
+    taskItems.forEach(item => {
+        item.style.boxShadow = '';
+        item.style.transform = `translateY(${Math.floor(Math.random() * 20) - 10}px)`;
         
-        if (card.querySelector('.start-task').dataset.id === randomTask.id) {
-            card.style.transform = 'translateY(-10px)';
-            card.style.boxShadow = '0 10px 20px rgba(0, 0, 0, 0.15)';
-            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (item.dataset.id === randomTask.id) {
+            item.style.transform = 'translateY(-15px) scale(1.1)';
+            item.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.15)';
+            item.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     });
 }
@@ -191,23 +200,23 @@ function filterTasksByMood() {
     const mood = moodSelect.value;
     
     if (mood === 'all') {
-        renderTasks();
+        renderTaskCloud();
         return;
     }
     
     const filteredTasks = tasks.filter(task => task.tags.includes(mood));
-    renderTasks(filteredTasks);
+    renderTaskCloud(filteredTasks);
 }
 
 // Filter tasks by selected tag
 function filterTasksByTag(tag) {
     if (tag === 'all') {
-        renderTasks();
+        renderTaskCloud();
         return;
     }
     
     const filteredTasks = tasks.filter(task => task.tags.includes(tag));
-    renderTasks(filteredTasks);
+    renderTaskCloud(filteredTasks);
 }
 
 // Start timer for a specific task
@@ -218,47 +227,25 @@ function startTaskTimer(taskId) {
     timerDuration = task.duration * 60;
     currentTime = timerDuration;
     isBreakTime = false;
+    currentTaskId = taskId;
     updateTimerDisplay();
-    timerMessage.textContent = `Working on: ${task.title}`;
+    timerTaskTitle.textContent = `Working on: ${task.title}`;
     
-    if (!isTimerRunning) {
-        startTimer();
-    } else {
-        resetTimer();
-        startTimer();
-    }
-}
-
-// Timer functions
-function startTimer() {
-    if (isTimerRunning) return;
+    // Show the mini timer
+    miniTimer.style.display = 'flex';
     
+    // Reset and start timer
+    clearInterval(timer);
     isTimerRunning = true;
     timer = setInterval(updateTimer, 1000);
-    startTimerBtn.disabled = true;
-    pauseTimerBtn.disabled = false;
+    pauseTimerBtn.textContent = '⏸️';
 }
 
-function pauseTimer() {
-    clearInterval(timer);
-    isTimerRunning = false;
-    startTimerBtn.disabled = false;
-    pauseTimerBtn.disabled = true;
-}
-
-function resetTimer() {
-    clearInterval(timer);
-    isTimerRunning = false;
-    currentTime = isBreakTime ? 5 * 60 : timerDuration;
-    updateTimerDisplay();
-    startTimerBtn.disabled = false;
-    pauseTimerBtn.disabled = false;
-    timerMessage.textContent = isBreakTime ? 'Time for a break!' : 'Ready to focus?';
-}
-
+// Update timer
 function updateTimer() {
     currentTime--;
     updateTimerDisplay();
+    updateProgressBar();
     
     if (currentTime <= 0) {
         clearInterval(timer);
@@ -266,20 +253,36 @@ function updateTimer() {
         
         if (!isBreakTime) {
             // Work session completed
+            completeTask();
             isBreakTime = true;
             currentTime = 5 * 60; // 5 minute break
-            timerMessage.textContent = 'Time for a break!';
-            completeTask();
+            timerTaskTitle.textContent = 'Time for a break!';
         } else {
             // Break completed
             isBreakTime = false;
-            currentTime = timerDuration;
-            timerMessage.textContent = 'Ready to focus?';
+            miniTimer.style.display = 'none';
+            currentTaskId = null;
         }
-        
-        startTimerBtn.disabled = false;
-        pauseTimerBtn.disabled = true;
     }
+}
+
+function pauseTimer() {
+    if (isTimerRunning) {
+        clearInterval(timer);
+        isTimerRunning = false;
+        pauseTimerBtn.textContent = '▶️';
+    } else {
+        timer = setInterval(updateTimer, 1000);
+        isTimerRunning = true;
+        pauseTimerBtn.textContent = '⏸️';
+    }
+}
+
+function resetTimer() {
+    clearInterval(timer);
+    isTimerRunning = false;
+    miniTimer.style.display = 'none';
+    currentTaskId = null;
 }
 
 function updateTimerDisplay() {
@@ -292,6 +295,14 @@ function updateTimerDisplay() {
 function completeTask() {
     completedTasks++;
     localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
+    
+    // Remove the completed task
+    if (currentTaskId) {
+        tasks = tasks.filter(task => task.id !== currentTaskId);
+        saveTasks();
+        renderTaskCloud();
+    }
+    
     updateProgressBar();
     showSuccess();
 }

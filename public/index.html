@@ -11,7 +11,7 @@
     <div class="container">
         <header>
             <h1>Bag of Tasks</h1>
-            <p class="quote">"One tomato at a time �"</p>
+            <p class="quote">"One tomato at a time 🍅"</p>
         </header>
 
         <div class="controls">
@@ -24,6 +24,7 @@
                     <option value="creative">Creative</option>
                     <option value="quick-win">Need a Quick Win</option>
                 </select>
+                <button id="random-task" class="btn primary">Pick Random</button>
             </div>
 
             <div class="filter-tags">
@@ -34,29 +35,26 @@
                 <button class="tag-filter" data-tag="focused">Focused</button>
             </div>
 
-            <div class="action-buttons">
-                <button id="random-task" class="btn primary">Pick Random Task</button>
-                <button id="add-task" class="btn secondary">+ Add Task</button>
-            </div>
+            <button id="add-task" class="add-task-btn">+ Add Task</button>
         </div>
-
-        <div class="timer-container">
-            <div class="timer-display">
+        
+        <!-- Minimized timer that only appears when active -->
+        <div class="mini-timer" id="mini-timer">
+            <div class="timer-info">
+                <div id="timer-task-title">Working on: Task Name</div>
                 <div id="timer">25:00</div>
-                <div id="timer-message">Ready to focus?</div>
             </div>
-            <div class="timer-controls">
-                <button id="start-timer" class="btn primary">Start</button>
-                <button id="pause-timer" class="btn secondary">Pause</button>
-                <button id="reset-timer" class="btn secondary">Reset</button>
+            <div class="timer-btns">
+                <button id="pause-timer" class="timer-btn">⏸️</button>
+                <button id="reset-timer" class="timer-btn">⏹️</button>
             </div>
             <div class="progress-bar">
                 <div class="progress-fill"></div>
             </div>
         </div>
 
-        <div class="task-pool" id="task-pool">
-            <!-- Tasks will be inserted here by JavaScript -->
+        <div class="tag-cloud" id="task-pool">
+            <!-- Tasks will be inserted here as cloud tags -->
             <div class="empty-state">
                 <p>Your bag is empty!</p>
                 <p>Add some tasks to get started.</p>
@@ -107,7 +105,7 @@
     <!-- Success Modal -->
     <div class="modal" id="success-modal">
         <div class="modal-content success">
-            <h2>You did it! �</h2>
+            <h2>You did it! 🎉</h2>
             <p>Great job completing your task!</p>
             <button class="btn primary" id="close-success">Keep Going</button>
         </div>
