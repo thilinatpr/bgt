@@ -1,4 +1,3 @@
-// public/script.js
 // DOM Elements
 const taskPool = document.getElementById('task-pool');
 const addTaskBtn = document.getElementById('add-task');
@@ -21,7 +20,11 @@ const confettiCanvas = document.getElementById('confetti-canvas');
 const loadingIndicator = document.getElementById('loading-indicator');
 
 // Constants
-const API_BASE_URL = '/api/tasks';
+// Change this URL for production/development
+const API_BASE_URL = 'https://your-backend-vercel-url.vercel.app/api/tasks';
+// For production, use:
+// const API_BASE_URL = 'https://your-backend-vercel-url.vercel.app/api/tasks';
+
 const LOADING_DELAY = 300; // ms to show loading indicator
 const REQUEST_TIMEOUT = 5000; // 5 seconds timeout for API calls
 
@@ -126,7 +129,7 @@ async function fetchStats() {
         }
         
         const stats = await response.json();
-        completedTasks = stats.completedTasks || 0;
+        completedTasks = stats.completed_tasks || 0;
         updateProgressBar();
         return stats;
     } catch (error) {
@@ -183,11 +186,11 @@ function renderTaskCloud(filteredTasks = tasks) {
     filteredTasks.forEach(task => {
         const tagItem = document.createElement('div');
         const randomSize = sizes[Math.floor(Math.random() * sizes.length)];
-        const primaryTag = task.tags.length > 0 ? task.tags[0] : '';
+        const primaryTag = task.tags && task.tags.length > 0 ? task.tags[0] : '';
         
         tagItem.className = `task-tag-item ${primaryTag} ${randomSize}`;
         tagItem.dataset.id = task.id;
-        tagItem.dataset.tags = task.tags.join(' ');
+        tagItem.dataset.tags = task.tags ? task.tags.join(' ') : '';
         
         tagItem.innerHTML = `
             <span class="task-title">${task.title}</span>
@@ -230,7 +233,7 @@ async function handleAddTask(e) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ title, duration, tags: tags.length ? tags : ['general'] })
-        }, REQUEST_TIMEOUT));
+        }), REQUEST_TIMEOUT);
         
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
@@ -256,10 +259,11 @@ function pickRandomTask() {
     const activeFilter = document.querySelector('.tag-filter.active').dataset.tag;
     const moodFilter = moodSelect.value;
     
-    let filteredTasks = tasks.filter(task => 
-        (activeFilter === 'all' || task.tags.includes(activeFilter)) &&
-        (moodFilter === 'all' || task.tags.includes(moodFilter))
-    );
+    let filteredTasks = tasks.filter(task => {
+        const taskTags = task.tags || [];
+        return (activeFilter === 'all' || taskTags.includes(activeFilter)) &&
+               (moodFilter === 'all' || taskTags.includes(moodFilter));
+    });
     
     if (filteredTasks.length === 0) {
         showError("No tasks match your filters");
@@ -279,12 +283,18 @@ function pickRandomTask() {
 // Filter tasks by mood
 function filterTasksByMood() {
     const mood = moodSelect.value;
-    renderTaskCloud(mood === 'all' ? tasks : tasks.filter(task => task.tags.includes(mood)));
+    renderTaskCloud(mood === 'all' ? tasks : tasks.filter(task => {
+        const taskTags = task.tags || [];
+        return taskTags.includes(mood);
+    }));
 }
 
 // Filter tasks by tag
 function filterTasksByTag(tag) {
-    renderTaskCloud(tag === 'all' ? tasks : tasks.filter(task => task.tags.includes(tag)));
+    renderTaskCloud(tag === 'all' ? tasks : tasks.filter(task => {
+        const taskTags = task.tags || [];
+        return taskTags.includes(tag);
+    }));
 }
 
 // Timer functions
@@ -297,6 +307,7 @@ function startTaskTimer(taskId) {
     currentTaskId = taskId;
     timerTaskTitle.textContent = `Working on: ${task.title}`;
     miniTimer.style.display = 'flex';
+    pauseTimerBtn.textContent = '⏸️';
     
     clearInterval(timer);
     isTimerRunning = true;
@@ -362,86 +373,96 @@ async function completeTask(taskId) {
         }
         
         const result = await response.json();
-        completedTasks = result.completedTasks;
+               completedTasks = result.completed_tasks || completedTasks + 1;
+        
+        // Remove completed task from local state
         tasks = tasks.filter(task => task.id !== taskId);
         
+        // Show success effects
+        showSuccessEffects();
+        updateProgressBar();
         renderTaskCloud();
-        miniTimer.style.display = 'none';
-        showSuccessMessage();
     } catch (error) {
         console.error('Complete task error:', error);
         showError(`Failed to complete task: ${error.message}`);
     } finally {
         setTimeout(() => showLoading(false), LOADING_DELAY);
+        resetTimer();
     }
 }
 
-// Success message with confetti
-function showSuccessMessage() {
-    successModal.style.display = 'flex';
-    successSound.play().catch(e => console.error('Audio playback failed:', e));
+// Show success effects
+function showSuccessEffects() {
+    // Play success sound
+    successSound.currentTime = 0;
+    successSound.play().catch(e => console.error('Audio play failed:', e));
     
-    // Confetti animation
-    const confettiCtx = confettiCanvas.getContext('2d');
-    confettiCanvas.width = window.innerWidth;
-    confettiCanvas.height = window.innerHeight;
+    // Show confetti
+    const confettiSettings = {
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 }
+    };
     
-    const confetti = [];
-    const colors = [
-        { front: '#4285F4', back: '#3372C3' },
-        { front: '#EA4335', back: '#C52E20' },
-        { front: '#FBBC05', back: '#DA921A' },
-        { front: '#34A853', back: '#298043' }
-    ];
-    
-    for (let i = 0; i < 200; i++) {
-        confetti.push({
-            color: colors[Math.floor(Math.random() * colors.length)],
-            dimensions: { x: Math.random() * 10 + 5, y: Math.random() * 10 + 5 },
-            position: { x: Math.random() * confettiCanvas.width, y: -Math.random() * confettiCanvas.height },
-            rotation: Math.random() * 2 * Math.PI,
-            velocity: { x: Math.random() * 25 - 12.5, y: Math.random() * 10 + 5 }
-        });
-    }
-    
-    function render() {
+    if (confettiCanvas) {
+        const confettiCtx = confettiCanvas.getContext('2d');
         confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
         
-        confetti.forEach((confetto, i) => {
-            confetto.velocity.x -= confetto.velocity.x * 0.075;
-            confetto.velocity.y = Math.min(confetto.velocity.y + 0.5, 5);
-            confetto.position.x += confetto.velocity.x;
-            confetto.position.y += confetto.velocity.y;
-            confetto.rotation += 0.1;
-            
-            confettiCtx.save();
-            confettiCtx.translate(confetto.position.x, confetto.position.y);
-            confettiCtx.rotate(confetto.rotation);
-            confettiCtx.fillStyle = Math.random() > 0.5 ? confetto.color.front : confetto.color.back;
-            confettiCtx.fillRect(-confetto.dimensions.x/2, -confetto.dimensions.y/2, confetto.dimensions.x, confetto.dimensions.y);
-            confettiCtx.restore();
-            
-            if (confetto.position.y >= confettiCanvas.height) {
-                confetti.splice(i, 1);
-            }
-        });
-        
-        if (confetti.length) {
-            requestAnimationFrame(render);
-        } else {
-            confettiCanvas.style.display = 'none';
+        // Using a simple confetti implementation
+        // For a more robust solution, consider using a library like canvas-confetti
+        const particles = [];
+        for (let i = 0; i < confettiSettings.particleCount; i++) {
+            particles.push({
+                x: Math.random() * confettiCanvas.width,
+                y: confettiCanvas.height * 0.6,
+                size: Math.random() * 5 + 3,
+                color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+                speed: Math.random() * 3 + 2,
+                angle: Math.random() * Math.PI * 2,
+                rotation: Math.random() * 0.2 - 0.1
+            });
         }
+        
+        let animationId;
+        const animateConfetti = () => {
+            confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+            
+            let stillActive = false;
+            particles.forEach(p => {
+                p.x += Math.cos(p.angle) * p.speed;
+                p.y += p.speed;
+                p.angle += p.rotation;
+                
+                if (p.y < confettiCanvas.height) {
+                    stillActive = true;
+                    confettiCtx.fillStyle = p.color;
+                    confettiCtx.beginPath();
+                    confettiCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    confettiCtx.fill();
+                }
+            });
+            
+            if (stillActive) {
+                animationId = requestAnimationFrame(animateConfetti);
+            }
+        };
+        
+        animateConfetti();
+        setTimeout(() => cancelAnimationFrame(animationId), 3000);
     }
     
-    confettiCanvas.style.display = 'block';
-    requestAnimationFrame(render);
+    // Show success modal
+    successModal.style.display = 'flex';
 }
 
-// Set random quote
+// Set random motivational quote
 function setRandomQuote() {
-    document.querySelector('.quote').textContent = 
-        quotes[Math.floor(Math.random() * quotes.length)];
+    const quoteElement = document.getElementById('motivational-quote');
+    if (quoteElement && quotes.length > 0) {
+        const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+        quoteElement.textContent = randomQuote;
+    }
 }
 
-// Initialize the app
-init();
+// Initialize the app when DOM is loaded
+document.addEventListener('DOMContentLoaded', init);

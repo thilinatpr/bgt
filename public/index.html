@@ -1,106 +1,101 @@
-<!--public/index.html-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bag of Tasks</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <header>
             <h1>Bag of Tasks</h1>
-            <p class="quote">"One tomato at a time 🍅"</p>
+            <p class="quote">One tomato at a time 🍅</p>
         </header>
-
-        <div class="controls">
-            <div class="mood-selector">
-                <span>I'm feeling:</span>
-                <select id="mood-select">
-                    <option value="all">Any mood</option>
-                    <option value="low-energy">Low Energy</option>
-                    <option value="focused">Focused</option>
-                    <option value="creative">Creative</option>
-                    <option value="quick-win">Need a Quick Win</option>
-                </select>
-                <button id="random-task" class="btn primary">Pick Random</button>
-            </div>
-
-            <div class="filter-tags">
-                <button class="tag-filter active" data-tag="all">All</button>
-                <button class="tag-filter" data-tag="low-energy">Low Energy</button>
-                <button class="tag-filter" data-tag="quick-win">Quick Win</button>
-                <button class="tag-filter" data-tag="creative">Creative</button>
-                <button class="tag-filter" data-tag="focused">Focused</button>
-            </div>
-
-            <button id="add-task" class="add-task-btn">+ Add Task</button>
-        </div>
         
-        <!-- Minimized timer that only appears when active -->
-        <div class="mini-timer" id="mini-timer">
+        <div id="mini-timer" class="mini-timer">
             <div class="timer-info">
-                <div id="timer-task-title">Working on: Task Name</div>
-                <div id="timer">25:00</div>
+                <p id="timer-task-title">Working on: Task</p>
+                <p id="timer">25:00</p>
             </div>
             <div class="timer-btns">
                 <button id="pause-timer" class="timer-btn">⏸️</button>
-                <button id="reset-timer" class="timer-btn">⏹️</button>
+                <button id="reset-timer" class="timer-btn">❌</button>
             </div>
             <div class="progress-bar">
                 <div class="progress-fill"></div>
             </div>
         </div>
-
-        <div class="tag-cloud" id="task-pool">
-            <!-- Tasks will be inserted here as cloud tags -->
-            <div class="empty-state">
-                <p>Your bag is empty!</p>
-                <p>Add some tasks to get started.</p>
+        
+        <div class="controls">
+            <div class="mood-selector">
+                <span>I'm feeling:</span>
+                <select id="mood-select">
+                    <option value="all">All Tasks</option>
+                    <option value="low-energy">Low Energy</option>
+                    <option value="focused">Focused</option>
+                    <option value="creative">Creative</option>
+                    <option value="quick-win">Quick Win</option>
+                </select>
+                <button id="random-task" class="btn primary">Pick Random Task</button>
             </div>
+            
+            <div class="filter-tags">
+                <span class="tag-filter active" data-tag="all">All</span>
+                <span class="tag-filter" data-tag="quick-win">Quick Win</span>
+                <span class="tag-filter" data-tag="low-energy">Low Energy</span>
+                <span class="tag-filter" data-tag="creative">Creative</span>
+                <span class="tag-filter" data-tag="focused">Focused</span>
+                <span class="tag-filter" data-tag="general">General</span>
+            </div>
+            
+            <button id="add-task" class="add-task-btn">+ Add Task</button>
         </div>
         
-        <!-- Loading indicator -->
+        <div id="task-pool" class="tag-cloud"></div>
+        
         <div id="loading-indicator" class="loading-indicator">
             <div class="spinner"></div>
-            <p>Loading tasks...</p>
+            <p>Loading...</p>
         </div>
     </div>
-
-    <!-- Add Task Modal -->
-    <div class="modal" id="add-task-modal">
+    
+    <div id="add-task-modal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
             <h2>Add New Task</h2>
             <form id="task-form">
                 <div class="form-group">
                     <label for="task-title">Task Title</label>
-                    <input type="text" id="task-title" required placeholder="What needs to be done?">
+                    <input type="text" id="task-title" placeholder="Enter task title">
                 </div>
                 <div class="form-group">
                     <label for="task-duration">Duration (minutes)</label>
-                    <input type="number" id="task-duration" min="5" max="120" value="25">
+                    <input type="number" id="task-duration" value="25" min="1" max="120">
                 </div>
                 <div class="form-group">
                     <label>Tags</label>
                     <div class="tag-options">
                         <label class="tag-option">
-                            <input type="checkbox" name="tags" value="low-energy">
-                            <span>Low Energy</span>
+                            <input type="checkbox" name="tags" value="quick-win">
+                            Quick Win
                         </label>
                         <label class="tag-option">
-                            <input type="checkbox" name="tags" value="quick-win">
-                            <span>Quick Win</span>
+                            <input type="checkbox" name="tags" value="low-energy">
+                            Low Energy
                         </label>
                         <label class="tag-option">
                             <input type="checkbox" name="tags" value="creative">
-                            <span>Creative</span>
+                            Creative
                         </label>
                         <label class="tag-option">
                             <input type="checkbox" name="tags" value="focused">
-                            <span>Focused</span>
+                            Focused
+                        </label>
+                        <label class="tag-option">
+                            <input type="checkbox" name="tags" value="general">
+                            General
                         </label>
                     </div>
                 </div>
@@ -108,19 +103,18 @@
             </form>
         </div>
     </div>
-
-    <!-- Success Modal -->
-    <div class="modal" id="success-modal">
+    
+    <div id="success-modal" class="modal">
         <div class="modal-content success">
-            <h2>You did it! 🎉</h2>
-            <p>Great job completing your task!</p>
-            <button class="btn primary" id="close-success">Keep Going</button>
+            <h2>🎉 Task Complete! 🎉</h2>
+            <p>Great job! Task completed successfully.</p>
+            <button id="close-success" class="btn primary">Continue</button>
         </div>
     </div>
-
+    
     <canvas id="confetti-canvas"></canvas>
-    <audio id="success-sound" src="success.wav"></audio>
-
+    <audio id="success-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3" preload="auto"></audio>
+    
     <script src="script.js"></script>
 </body>
 </html>

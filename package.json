@@ -1,14 +1,12 @@
 {
-  "name": "bag-of-tasks",
+  "name": "bag-of-tasks-frontend",
   "version": "1.0.0",
-  "description": "A productivity app with task picking based on mood",
+  "description": "Frontend for Bag of Tasks app",
   "scripts": {
-    "dev": "vercel dev"
-  },
-  "dependencies": {
-    "@vercel/kv": "^0.2.3"
+    "dev": "serve -s public"
   },
   "devDependencies": {
+    "serve": "^14.2.1",
     "vercel": "^31.0.0"
   }
 }
